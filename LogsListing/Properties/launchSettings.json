@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "LogsListing": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7225",
+      "launchBrowser": false
+    }
+  }
+}

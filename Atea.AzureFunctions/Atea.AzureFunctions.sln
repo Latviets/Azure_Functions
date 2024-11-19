@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35431.28
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Atea.AzureFunctions", "Atea.AzureFunctions.csproj", "{EBE5929C-F4CA-48DA-BF3B-267A565EC019}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LogsListing", "..\LogsListing\LogsListing.csproj", "{99160FCA-F22E-4C25-B94E-E270CB2BBA50}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EBE5929C-F4CA-48DA-BF3B-267A565EC019}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBE5929C-F4CA-48DA-BF3B-267A565EC019}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBE5929C-F4CA-48DA-BF3B-267A565EC019}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBE5929C-F4CA-48DA-BF3B-267A565EC019}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99160FCA-F22E-4C25-B94E-E270CB2BBA50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99160FCA-F22E-4C25-B94E-E270CB2BBA50}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99160FCA-F22E-4C25-B94E-E270CB2BBA50}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99160FCA-F22E-4C25-B94E-E270CB2BBA50}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {547413B0-A2E1-4B72-AC6E-F744163B05D9}
+	EndGlobalSection
+EndGlobal
