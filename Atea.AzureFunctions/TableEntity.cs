@@ -9,10 +9,10 @@ namespace Atea.AzureFunctions
         {
             Success = success;
         }
+        public bool Success { get; set; }
         public required string PartitionKey { get; set; }
         public required string RowKey { get; set; }
         public DateTimeOffset? Timestamp { get; set; }
         public ETag ETag { get; set; }
-        public bool Success { get; set; }
     }
 }

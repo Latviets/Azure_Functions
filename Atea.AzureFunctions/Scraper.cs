@@ -1,7 +1,9 @@
 using System.Net.Http.Json;
 using Atea.AzureFunctions.Models;
+using Atea.AzureFunctions.Services;
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
+using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
@@ -10,14 +12,14 @@ namespace Atea.AzureFunctions
     public class Scraper
     {
         private readonly ILogger _logger;
-        private readonly string _connectionString = "UseDevelopmentStorage=true";
+        private readonly StorageService _storageService;
         private Uri _baseAdress = new Uri("https://restcountries.com");
-        private string _table = "atea";
-        private readonly string _uniqueblobStorageName = $"testingblob-{Guid.NewGuid().ToString().ToLower()}";
+        private string _tableName = "atea";
 
         public Scraper(ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger<Scraper>();
+            _storageService = new StorageService("UseDevelopmentStorage=true", _logger, _tableName);
         }
 
         [Function("Scraper")]
@@ -36,10 +38,10 @@ namespace Atea.AzureFunctions
                         var partitionKey = GenerateUniquePartitionKey();
                         var rowKey = GenerateUniqueRowKey();
 
-                        await SaveDataToTableStorageAsync(partitionKey, rowKey, response);
-                        await SaveToBlobStorageAsync(rowKey, countries);
+                        await _storageService.SaveDataToTableStorageAsync(partitionKey, rowKey, response);
+                        await _storageService.SaveToBlobStorageAsync(rowKey, countries);
 
-                        var downloadedCountries = await DownloadBlobContentsAsync(rowKey);
+                        var downloadedCountries = await _storageService.DownloadBlobContentsAsync(rowKey);
                     }
 
                     _logger.LogInformation("Request was processed.");
@@ -73,46 +75,6 @@ namespace Atea.AzureFunctions
         private string GenerateUniqueRowKey()
         {
             return Guid.NewGuid().ToString();
-        }
-
-        private async Task SaveDataToTableStorageAsync(string partitionkey, string rowkey, HttpResponseMessage response)
-        {
-            var tableServiceClient = new TableServiceClient(_connectionString);
-            await tableServiceClient.CreateTableIfNotExistsAsync(_table);
-            var tableClient = tableServiceClient.GetTableClient(_table);
-
-            var tableEntity = new TableEntity(response.IsSuccessStatusCode)
-            {
-                PartitionKey = partitionkey,
-                RowKey = rowkey
-            };
-
-            await tableClient.AddEntityAsync(tableEntity);
-            _logger.LogInformation("Data successfully saved to table storage.");
-        }
-
-        private async Task SaveToBlobStorageAsync(string rowkey, ICollection<Country> countries)
-        {
-            var blobServiceClient = new BlobServiceClient(_connectionString);
-            var blobContainerClient = blobServiceClient.GetBlobContainerClient(_uniqueblobStorageName);
-
-            await blobContainerClient.CreateIfNotExistsAsync();
-            await blobContainerClient.UploadBlobAsync($"TestingBlob_{rowkey}.json", BinaryData.FromObjectAsJson(countries));
-
-            _logger.LogInformation("Data saved to blob storage.");
-        }
-
-        private async Task<ICollection<Country>> DownloadBlobContentsAsync(string rowKey)
-        {
-            var bloblServiceClient = new BlobServiceClient(_connectionString);
-            var blobContainerClient = bloblServiceClient.GetBlobContainerClient(_uniqueblobStorageName);
-
-            var blobClient = blobContainerClient.GetBlobClient($"TestingBlob_{rowKey}.json");
-            var content = await blobClient.DownloadContentAsync();
-
-            _logger.LogInformation("Data downloaded from blob storage.");
-
-            return content.Value.Content.ToObjectFromJson<ICollection<Country>>();
         }
     }
 }
