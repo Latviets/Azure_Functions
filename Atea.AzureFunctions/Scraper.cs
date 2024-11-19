@@ -1,11 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using Atea.AzureFunctions.Models;
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 
 namespace Atea.AzureFunctions
@@ -13,6 +12,8 @@ namespace Atea.AzureFunctions
     public class Scraper
     {
         private readonly ILogger _logger;
+        private readonly string _connectionString = "UseDevelopmentStorage=true";
+        private Uri _baseAdress = new Uri("https://restcountries.com");
 
         public Scraper(ILoggerFactory loggerFactory)
         {
@@ -20,47 +21,49 @@ namespace Atea.AzureFunctions
         }
 
         [Function("Scraper")]
-        public async Task Run([TimerTrigger("*/1 * * * *")] TimerInfo myTimer)
+        public async Task Run([TimerTrigger("* * * * *")] TimerInfo myTimer)
         {
             try
             {
                 using (var client = new HttpClient())
                 {
-                    client.BaseAddress = new Uri("https://restcountries.com");
+                    client.BaseAddress = _baseAdress;
                     var response = await client.GetAsync("/v3.1/lang/spanish");
                     var result = await response.Content.ReadFromJsonAsync<ICollection<Country>>();
-                    var key = Guid.NewGuid();
 
-                    var tableServiceClient = new TableServiceClient("UseDevelopmentStorage=true");
+                    var partitionKey = Guid.NewGuid().ToString();
+                    var rowKey = Guid.NewGuid().ToString();
+
+                    var tableServiceClient = new TableServiceClient(_connectionString);
                     await tableServiceClient.CreateTableIfNotExistsAsync("atea");
                     var tableClient = tableServiceClient.GetTableClient("atea");
-
-
                     await tableClient.AddEntityAsync(new TableEntity(response.IsSuccessStatusCode)
                     {
-                        PartitionKey = key.ToString(),
-                        RowKey = key.ToString()
+                        PartitionKey = partitionKey,
+                        RowKey = rowKey
                     });
 
-                    var blobServiceClient = new BlobServiceClient("UseDevelopmentStorage=true");
-                    var blobContainerClient = await blobServiceClient.CreateBlobContainerAsync("atea");
+                    var newBlobContainerName = $"testingblob-{Guid.NewGuid().ToString().Replace("-", string.Empty).ToLower()}";
 
-                    await blobContainerClient.Value.CreateIfNotExistsAsync();
-                    await blobContainerClient.Value.UploadBlobAsync($"{key.ToString()}.json", BinaryData.FromObjectAsJson(result));
+                    var blobServiceClient = new BlobServiceClient(_connectionString);
+                    var blobContainerClient = blobServiceClient.GetBlobContainerClient(newBlobContainerName);
+              
+                    await blobContainerClient.CreateIfNotExistsAsync();
+                    await blobContainerClient.UploadBlobAsync($"TestingBlob_{rowKey}.json", BinaryData.FromObjectAsJson(result));
 
-                    var blob = blobContainerClient.Value.GetBlobClient("container/table name");
+                    var blob = blobContainerClient.GetBlobClient($"TestingBlob_{rowKey}.json");
                     var content = await blob.DownloadContentAsync();
 
                     content.Value.Content.ToObjectFromJson<Country>();
 
-                    _logger.LogInformation("action");
+                    _logger.LogInformation("Request was processed.");
                 }
             }
             catch (Exception ex)
             {
                 Console.Write("Message :{0}", ex.Message);
             }
+        }              
 
-        }
     }
 }
