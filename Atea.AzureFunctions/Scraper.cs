@@ -22,35 +22,44 @@ namespace Atea.AzureFunctions
         [Function("Scraper")]
         public async Task Run([TimerTrigger("*/1 * * * *")] TimerInfo myTimer)
         {
-            var client = new HttpClient();
-            client.BaseAddress = new Uri("https://restcountries.com");
-            var response = await client.GetAsync("/v3.1/lang/spanish");
-            var result = await response.Content.ReadFromJsonAsync<ICollection<Country>>();
-            var key = Guid.NewGuid();
-
-            var tableServiceClient = new TableServiceClient("UseDevelopmentStorage=true");
-            await tableServiceClient.CreateTableIfNotExistsAsync("atea");
-            var tableClient = tableServiceClient.GetTableClient("atea");
-
-
-            await tableClient.AddEntityAsync(new TableEntity(response.IsSuccessStatusCode)
+            try
             {
-                PartitionKey = key.ToString(),
-                RowKey = key.ToString()
-            });
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri("https://restcountries.com");
+                    var response = await client.GetAsync("/v3.1/lang/spanish");
+                    var result = await response.Content.ReadFromJsonAsync<ICollection<Country>>();
+                    var key = Guid.NewGuid();
 
-            var blobServiceClient = new BlobServiceClient("UseDevelopmentStorage=true");
-            var blobContainerClient = await blobServiceClient.CreateBlobContainerAsync("atea");
+                    var tableServiceClient = new TableServiceClient("UseDevelopmentStorage=true");
+                    await tableServiceClient.CreateTableIfNotExistsAsync("atea");
+                    var tableClient = tableServiceClient.GetTableClient("atea");
 
-            await blobContainerClient.Value.CreateIfNotExistsAsync();
-            await blobContainerClient.Value.UploadBlobAsync($"{key.ToString()}.json", BinaryData.FromObjectAsJson(result));
 
-            var blob = blobContainerClient.Value.GetBlobClient("container/table name");
-            var content = await blob.DownloadContentAsync();
+                    await tableClient.AddEntityAsync(new TableEntity(response.IsSuccessStatusCode)
+                    {
+                        PartitionKey = key.ToString(),
+                        RowKey = key.ToString()
+                    });
 
-            content.Value.Content.ToObjectFromJson<Country>();
+                    var blobServiceClient = new BlobServiceClient("UseDevelopmentStorage=true");
+                    var blobContainerClient = await blobServiceClient.CreateBlobContainerAsync("atea");
 
-            _logger.LogInformation("action");
+                    await blobContainerClient.Value.CreateIfNotExistsAsync();
+                    await blobContainerClient.Value.UploadBlobAsync($"{key.ToString()}.json", BinaryData.FromObjectAsJson(result));
+
+                    var blob = blobContainerClient.Value.GetBlobClient("container/table name");
+                    var content = await blob.DownloadContentAsync();
+
+                    content.Value.Content.ToObjectFromJson<Country>();
+
+                    _logger.LogInformation("action");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Write("Message :{0}", ex.Message);
+            }
 
         }
     }

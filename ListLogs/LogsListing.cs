@@ -3,20 +3,19 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using System.Reflection.Metadata.Ecma335;
 
-namespace LogsListing
+namespace ListLogs
 {
-    public class LogDataInRange
+    public class LogsListing
     {
-        private readonly ILogger<LogDataInRange> _logger;
+        private readonly ILogger<LogsListing> _logger;
 
-        public LogDataInRange(ILogger<LogDataInRange> logger)
+        public LogsListing(ILogger<LogsListing> logger)
         {
             _logger = logger;
         }
 
-        [Function("LogDataInRange")]
+        [Function("LogsListing")]
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequest req)
         {
             DateTimeOffset.TryParse(req.Query["from"], out var from);
@@ -27,7 +26,7 @@ namespace LogsListing
             var tableClient = tableServiceClient.GetTableClient("atea");
 
             var records = tableClient.Query<TableEntity>(
-                item => item.Timestamp.Value >=  from && item.Timestamp.Value <= to);
+                item => item.Timestamp.Value >= from && item.Timestamp.Value <= to);
             var response = records.AsPages(null, 50);
 
             _logger.LogInformation("C# HTTP trigger function processed a request.");
