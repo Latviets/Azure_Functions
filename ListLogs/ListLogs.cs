@@ -9,7 +9,9 @@ namespace ListLogs
     public class ListLogs
     {
         private readonly ILogger<ListLogs> _logger;
-
+        private readonly string _connectionString = "UseDevelopmentStorage=true";
+        private Uri _baseAdress = new Uri("https://restcountries.com");
+        private string _table = "atea";
         public ListLogs(ILogger<ListLogs> logger)
         {
             _logger = logger;
@@ -18,28 +20,40 @@ namespace ListLogs
         [Function("ListLogs")]
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequest req)
         {
-            if (!DateTimeOffset.TryParse(req.Query["from"], out var from))
-            {
-                return new BadRequestObjectResult("Invalid 'from' date in request.");
-            }
+            var fromResult = ValidateDateQuery(req, "from", out var from);
+            if (fromResult != null) return fromResult;
 
-            if (!DateTimeOffset.TryParse(req.Query["to"], out var to))
-            {
-                return new BadRequestObjectResult("Invalid 'to' date in request.");
-            }
+            var toResult = ValidateDateQuery(req, "to", out var to);
+            if (toResult != null) return toResult;
 
-            var tableServiceClient = new TableServiceClient("UseDevelopmentStorage=true");
-            await tableServiceClient.CreateTableIfNotExistsAsync("atea");
-            var tableClient = tableServiceClient.GetTableClient("atea");
+            List<TableEntity> logs = await GetLogsInGivenTimeRange(from, to);
+
+            _logger.LogInformation($"Found {logs.Count} logs from {from} to {to}.");
+
+            return new OkObjectResult(logs);
+        }
+
+        private async Task<List<TableEntity>> GetLogsInGivenTimeRange(DateTimeOffset from, DateTimeOffset to)
+        {
+            var tableServiceClient = new TableServiceClient(_connectionString);
+            await tableServiceClient.CreateTableIfNotExistsAsync(_table);
+            var tableClient = tableServiceClient.GetTableClient(_table);
 
             var queryResults = tableClient.Query<TableEntity>(
                 item => item.Timestamp.Value >= from && item.Timestamp.Value <= to);
 
             var logs = queryResults.ToList();
+            return logs;
+        }
 
-            _logger.LogInformation($"Found {logs.Count} logs from {from} to {to}.");
+        private IActionResult ValidateDateQuery(HttpRequest req, string queryParam, out DateTimeOffset date)
+        {
+            if (!DateTimeOffset.TryParse(req.Query[queryParam], out date))
+            {
+                return new BadRequestObjectResult($"Invalid '{queryParam}' date in request.");
+            }
 
-            return new OkObjectResult(logs);
+            return null;
         }
     }
 }
