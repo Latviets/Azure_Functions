@@ -1,9 +1,6 @@
 using System.Net.Http.Json;
 using Atea.AzureFunctions.Models;
 using Atea.AzureFunctions.Services;
-using Azure.Data.Tables;
-using Azure.Storage.Blobs;
-using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
@@ -12,14 +9,20 @@ namespace Atea.AzureFunctions
     public class Scraper
     {
         private readonly ILogger _logger;
+        private readonly DataService _dataService;
         private readonly StorageService _storageService;
+        private readonly BlobService _blobService;
+
         private Uri _baseAdress = new Uri("https://restcountries.com");
         private string _tableName = "atea";
+        private readonly string _connectionString = "UseDevelopmentStorage=true";
 
         public Scraper(ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger<Scraper>();
-            _storageService = new StorageService("UseDevelopmentStorage=true", _logger, _tableName);
+            _dataService = new DataService(_baseAdress, _logger);
+            _storageService = new StorageService(_connectionString, _logger, _tableName);
+            _blobService = new BlobService(_connectionString, _logger);
         }
 
         [Function("Scraper")]
@@ -27,7 +30,7 @@ namespace Atea.AzureFunctions
         {
             try
             {
-                var response = await GetCountriesAsync();
+                var response = await _dataService.GetDataAsync();
 
                 if (response != null && response.IsSuccessStatusCode)
                 {
@@ -39,9 +42,9 @@ namespace Atea.AzureFunctions
                         var rowKey = GenerateUniqueRowKey();
 
                         await _storageService.SaveDataToTableStorageAsync(partitionKey, rowKey, response);
-                        await _storageService.SaveToBlobStorageAsync(rowKey, countries);
+                        await _blobService.SaveToBlobStorageAsync(rowKey, countries);
 
-                        var downloadedCountries = await _storageService.DownloadBlobContentsAsync(rowKey);
+                        var downloadedCountries = await _blobService.DownloadBlobContentsAsync(rowKey);
                     }
 
                     _logger.LogInformation("Request was processed.");
@@ -51,20 +54,6 @@ namespace Atea.AzureFunctions
             {
                 Console.Write("Message :{0}", ex.Message);
             }
-        }
-
-        private async Task<HttpResponseMessage> GetCountriesAsync()
-        {
-            using var client = new HttpClient { BaseAddress = _baseAdress };
-            var response = await client.GetAsync("/v3.1/lang/spanish");
-
-            if (response.IsSuccessStatusCode)
-            {
-                return response;
-            }
-
-            _logger.LogError("Failed to get response.");
-            return null;
         }
 
         private string GenerateUniquePartitionKey()

@@ -1,4 +1,4 @@
-using Azure.Data.Tables;
+using ListLogs.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -9,12 +9,14 @@ namespace ListLogs
     public class ListLogs
     {
         private readonly ILogger<ListLogs> _logger;
-        private readonly string _connectionString = "UseDevelopmentStorage=true";
-        private Uri _baseAdress = new Uri("https://restcountries.com");
+        private readonly string _connectionString = "UseDevelopmentStorage=true";       
         private string _table = "atea";
+        private readonly LogsService _logsService;
+
         public ListLogs(ILogger<ListLogs> logger)
         {
             _logger = logger;
+            _logsService = new LogsService(_connectionString, _table);
         }
 
         [Function("ListLogs")]
@@ -26,24 +28,10 @@ namespace ListLogs
             var toResult = ValidateDateQuery(req, "to", out var to);
             if (toResult != null) return toResult;
 
-            List<TableEntity> logs = await GetLogsInGivenTimeRange(from, to);
-
-            _logger.LogInformation($"Found {logs.Count} logs from {from} to {to}.");
+            var logs = _logsService.GetLogsInGivenTimeRange(from, to);
+            _logger.LogInformation($"Found {logs.Result.Count} logs from {from} to {to}.");
 
             return new OkObjectResult(logs);
-        }
-
-        private async Task<List<TableEntity>> GetLogsInGivenTimeRange(DateTimeOffset from, DateTimeOffset to)
-        {
-            var tableServiceClient = new TableServiceClient(_connectionString);
-            await tableServiceClient.CreateTableIfNotExistsAsync(_table);
-            var tableClient = tableServiceClient.GetTableClient(_table);
-
-            var queryResults = tableClient.Query<TableEntity>(
-                item => item.Timestamp.Value >= from && item.Timestamp.Value <= to);
-
-            var logs = queryResults.ToList();
-            return logs;
         }
 
         private IActionResult ValidateDateQuery(HttpRequest req, string queryParam, out DateTimeOffset date)
