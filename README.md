@@ -1,16 +1,15 @@
 # Azure Functions
-Working with Azure Function, Azure Storage (Local storage emulator)
-Used Azure Function (Local), Azure Storage (Local storage emulator) to
-Create a GET API call to list all logs for specific time period (from/to) using a time trigger,
-Create a GET API call to fetch a payload from blob for specific log entry
-and store success/failure attempt log in the table
-and full payload in the blob.
+This project involves working with Azure Functions and Azure Storage (using a local storage emulator).
 
-# TimerTrigger - C<span>#</span>
+## Features
+Create a GET API Call: Lists all logs for a specified time period (from/to) using a time trigger.
 
-The `TimerTrigger` makes it incredibly easy to have your functions executed on a schedule. This sample demonstrates a simple use case of calling your function every 5 minutes.
+Fetch Payload from Blob: Retrieves a payload for a specific log entry and stores the success/failure attempt log in the table and the full payload in the blob.
 
-## How it works
+## TimerTrigger - C#
+The TimerTrigger makes it incredibly easy to have your functions executed on a schedule. This sample demonstrates a simple use case of calling your function every 5 minutes.
 
-For a `TimerTrigger` to work, you provide a schedule in the form of a [cron expression](https://en.wikipedia.org/wiki/Cron#CRON_expression)(See the link for full details). A cron expression is a string with 6 separate expressions which represent a given schedule via patterns. The pattern we use to represent every 5 minutes is `0 */5 * * * *`. This, in plain text, means: "When seconds is equal to 0, minutes is divisible by 5, for any hour, day of the month, month, day of the week, or year".
+## How It Works
+## Azure Function Timer Trigger → GET API Call (List Logs for a Time Period) → Azure Storage Blob (Fetch Payload for Specific Log) → Azure Storage Table (Store Success/Failure Attempt Log)
+For a TimerTrigger to work, you provide a schedule in the form of a cron expression. A cron expression is a string with 6 separate fields representing a given schedule via patterns. The pattern used to represent every 5 minutes is 0 */5 * * * *. 
 
