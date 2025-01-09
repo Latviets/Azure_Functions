@@ -1,6 +1,12 @@
 # Azure Functions
 This project involves working with Azure Functions and Azure Storage (using a local storage emulator).
 
+## Technologies Used
+- Azure Services
+- Azure Functions
+- Azure Blob Storage (Azure.Storage.Blobs)
+- Azure Table Storage (Azure.Data.Tables)
+
 ## Features
 Create a GET API Call: Lists all logs for a specified time period (from/to) using a time trigger.
 
